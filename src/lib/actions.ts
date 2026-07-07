@@ -1,7 +1,7 @@
 'use server';
 
 import crypto from 'crypto';
-import { getSheetData, appendRow, updateRow, deleteRow } from './google';
+import { getSheetData, appendRow, updateRow, deleteRow, appendRows } from './google';
 import { getAdminSession } from './auth';
 
 // --- AUTH CHECK HELPER ---
@@ -155,6 +155,42 @@ export async function updateTeacher(
 export async function deleteTeacher(rowIndex: number) {
   await verifyAdmin();
   await deleteRow('Teachers', rowIndex);
+}
+
+export async function importTeachers(
+  teachersList: {
+    Prefix: string;
+    FirstName: string;
+    LastName: string;
+    LearningAreaId: string;
+  }[]
+) {
+  await verifyAdmin();
+
+  const areas = await getLearningAreas();
+  const areaIds = new Set(areas.map((a) => a.Id));
+
+  const teachersToInsert = teachersList.map((t) => {
+    if (!t.FirstName.trim() || !t.LastName.trim()) {
+      throw new Error('ชื่อและนามสกุลครูต้องไม่ว่างเปล่า');
+    }
+    if (!t.LearningAreaId || !areaIds.has(t.LearningAreaId)) {
+      throw new Error(`ไม่พบกลุ่มสาระที่เลือกระบุ หรือรหัสกลุ่มสาระไม่ถูกต้อง (${t.LearningAreaId})`);
+    }
+
+    return {
+      Id: crypto.randomUUID().slice(0, 8),
+      Prefix: t.Prefix.trim(),
+      FirstName: t.FirstName.trim(),
+      LastName: t.LastName.trim(),
+      LearningAreaId: t.LearningAreaId,
+      Status: 'active',
+    };
+  });
+
+  if (teachersToInsert.length === 0) return;
+
+  await appendRows('Teachers', teachersToInsert);
 }
 
 // --- MEDIA ACTIONS ---

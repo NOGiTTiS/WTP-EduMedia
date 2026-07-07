@@ -259,6 +259,36 @@ export async function appendRow(sheetName: string, data: Record<string, any>): P
 }
 
 /**
+ * Helper to append multiple rows of data in batch
+ */
+export async function appendRows(sheetName: string, dataArray: Record<string, any>[]): Promise<void> {
+  await ensureDbVerified();
+  if (!SPREADSHEET_ID) throw new Error('GOOGLE_SPREADSHEET_ID is not configured.');
+  if (dataArray.length === 0) return;
+
+  const headers = DB_SCHEMA[sheetName];
+  if (!headers) throw new Error(`Sheet ${sheetName} not found in DB schema.`);
+
+  const values = dataArray.map((data) => {
+    return headers.map((header) => {
+      const val = data[header];
+      return val !== undefined && val !== null ? String(val) : '';
+    });
+  });
+
+  const sheets = getSheetsClient();
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A2`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values,
+    },
+  });
+}
+
+/**
  * Helper to update an existing row in a sheet by its Sheet API index (_rowIndex)
  */
 export async function updateRow(

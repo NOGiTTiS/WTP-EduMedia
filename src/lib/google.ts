@@ -377,6 +377,8 @@ export async function getOrCreateFolder(folderName: string, parentFolderId: stri
     q: query,
     spaces: 'drive',
     fields: 'files(id, name)',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
 
   const files = response.data.files || [];
@@ -392,6 +394,7 @@ export async function getOrCreateFolder(folderName: string, parentFolderId: stri
       parents: [parentFolderId],
     },
     fields: 'id',
+    supportsAllDrives: true,
   });
 
   const newFolderId = createResponse.data.id;
@@ -428,6 +431,7 @@ export async function uploadFileToDrive(
       body: bufferStream,
     },
     fields: 'id, webViewLink',
+    supportsAllDrives: true,
   });
 
   const fileId = response.data.id;
@@ -445,6 +449,7 @@ export async function uploadFileToDrive(
         role: 'reader',
         type: 'anyone',
       },
+      supportsAllDrives: true,
     });
   } catch (err) {
     console.warn(`Could not set public permission on file ${fileId}, but upload succeeded. Error:`, err);
